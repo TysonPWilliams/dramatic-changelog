@@ -14,6 +14,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0  # Needed for amending commits
+          token: ${{ secrets.GH_PAT }}
 
       - name: Install jq
         run: sudo apt-get update && sudo apt-get install -y jq
@@ -59,10 +60,10 @@ jobs:
 
           echo "dramatic_msg=$COMMIT_MSG" >> $GITHUB_OUTPUT
 
-      - name: Set Git remote URL with PAT
-        run: |
-          echo "Setting remote URL with PAT..."
-          git remote set-url origin https://x-access-token:${{ secrets.GH_PAT }}@github.com/${{ github.repository }}
+    #   - name: Set Git remote URL with PAT
+    #     run: |
+    #       echo "Setting remote URL with PAT..."
+    #       git remote set-url origin https://x-access-token:${{ secrets.GH_PAT }}@github.com/${{ github.repository }}
 
       - name: Show git remote URL (for debugging)
         run: git remote -v
