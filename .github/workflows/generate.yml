@@ -46,8 +46,8 @@ jobs:
         run: |
           PROMPT="Rewrite this commit message dramatically: '${{ steps.get_commit.outputs.msg }}'"
           RESPONSE=$(curl -s -X POST http://localhost:11434/api/generate \
-          -H "Content-Type: application/json" \
-          -d "{\"model\": \"llama3:instruct\", \"prompt\": \"$PROMPT\"}")
+            -H "Content-Type: application/json" \
+            -d "{\"model\": \"llama3:instruct\", \"prompt\": \"$PROMPT\"}")
 
           COMMIT_MSG=$(echo "$RESPONSE" | jq -r '.response // .completion // ""' | head -n 1)
 
@@ -63,7 +63,7 @@ jobs:
         run: |
           echo "Setting remote URL with PAT..."
           git remote set-url origin https://x-access-token:${{ secrets.GH_PAT }}@github.com/${{ github.repository }}
-          
+
       - name: Show git remote URL (for debugging)
         run: git remote -v
 
@@ -74,9 +74,8 @@ jobs:
         run: |
           git config user.name "Tyson Williams"
           git config user.email "tyson.williams95@gmail.com"
-          
+
           echo "Amending commit message..."
-          # Attempt amend, if no changes print message but don't fail
           git commit --amend -m "${{ steps.dramatic_commit.outputs.dramatic_msg }}" || echo "No changes to amend"
 
       - name: Show git status (after amend)
@@ -88,4 +87,6 @@ jobs:
       - name: Push changes
         run: |
           echo "Pushing changes to origin main..."
+          git fetch origin main
+          git rebase origin/main || echo "Rebase conflict or no rebase needed"
           git push --force origin main
