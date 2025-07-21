@@ -55,7 +55,7 @@ jobs:
             echo "Sending to Ollama: $PROMPT"
             
             RESPONSE=$(curl -s -X POST "http://localhost:11434/api/generate" -H "Content-Type: application/json" -d "{\"model\":\"qwen3:0.6b\",\"prompt\":\"$PROMPT\",\"stream\":false}")
-            
+
             if [ -z "$RESPONSE" ]; then
               echo "No response from Ollama. Exiting."
               exit 1
