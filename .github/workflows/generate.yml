@@ -1,0 +1,49 @@
+name: Generate Dramatic Commit Message
+
+on:
+  push:
+    branches:
+      - main  
+
+jobs:
+  dramatize_commit:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Required for amending commits
+
+      - name: Set up Docker
+        uses: docker/setup-buildx-action@v3
+
+      - name: Pull and run Ollama container
+        run: |
+          docker run -d --name ollama -p 11434:11434 ollama/ollama
+          echo "Waiting for Ollama to be ready..."
+          sleep 30
+
+      - name: Get last commit message
+        id: get_commit
+        run: |
+          LAST_MSG=$(git log -1 --pretty=%B)
+          echo "msg=$LAST_MSG" >> $GITHUB_OUTPUT
+
+      - name: Generate dramatic message with Ollama
+        id: dramatic_commit
+        run: |
+          PROMPT="Rewrite this commit message dramatically: '${{ steps.get_commit.outputs.msg }}'"
+          AI_RESPONSE=$(curl -s -X POST http://localhost:11434/api/generate \
+            -H "Content-Type: application/json" \
+            -d "{\"model\": \"llama3:instruct\", \"prompt\": \"$PROMPT\"}")
+          COMMIT_MSG=$(echo $AI_RESPONSE | jq -r '.response // .completion // ""' | head -n 1)
+          echo "dramatic_msg=$COMMIT_MSG" >> $GITHUB_OUTPUT
+
+      - name: Amend commit with dramatic message
+        run: |
+          git config user.name "github-actions"
+          git config user.email "actions@github.com"
+          git commit --amend -m "${{ steps.dramatic_commit.outputs.dramatic_msg }}"
+          git push --force
+
