@@ -73,9 +73,9 @@ jobs:
             git config user.email "tyson.williams95@gmail.com"
             git remote set-url origin https://x-access-token:${{ secrets.GH_PAT }}@github.com/${{ github.repository }}
             
-            git add .
-            git commit -m "Initial commit - rewritten dramatically!"
-            git push origin main
+            git status
+            git commit --amend -m "${{ steps.dramatic_commit.outputs.dramatic_msg }}"
+            git push --force origin main
 
 
 
