@@ -47,7 +47,7 @@ jobs:
           LAST_MSG=$(git log -1 --pretty=%B)
           echo "msg=$LAST_MSG" >> $GITHUB_OUTPUT
 
-      - name: Generate dramatic message with Ollama
+      - name: Generate dramatic commit message
         id: dramatic_commit
         run: |
             PROMPT="Rewrite the following commit message in an over-the-top, dramatic tone: '${{ steps.get_commit.outputs.msg }}'"
@@ -55,6 +55,7 @@ jobs:
             echo "Sending to Ollama: $PROMPT"
             
             RESPONSE=$(curl -s -X POST http://localhost:11434/api/generate \
+
             -H "Content-Type: application/json" \
             -d "{\"model\": \"llama3:instruct\", \"prompt\": \"$PROMPT\", \"stream\": false}")
             
@@ -63,6 +64,7 @@ jobs:
             COMMIT_MSG=$(echo "$RESPONSE" | jq -r '.response // .completion // ""' | sed 's/^"//;s/"$//' | head -n 1)
 
             if [[ -z "$COMMIT_MSG" || "$COMMIT_MSG" == "null" ]]; then
+
             COMMIT_MSG="Initial commit - rewritten dramatically!"
             fi
 
@@ -89,6 +91,7 @@ jobs:
 
           echo "New dramatic message: $NEW_MSG"
           git commit --amend -m "$NEW_MSG [skip dramatic]" 
+
 
       - name: Force push amended commit
         run: git push --force origin main
