@@ -3,7 +3,7 @@ name: Generate Dramatic Commit Message
 on:
   push:
     branches:
-      - main  
+      - main
 
 jobs:
   dramatize_commit:
@@ -13,25 +13,17 @@ jobs:
       - name: Checkout repo
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0  # Required for amending commits
+          fetch-depth: 0  # Needed for amending commits
+
+      - name: Install jq
+        run: sudo apt-get update && sudo apt-get install -y jq
 
       - name: Set up Docker
         uses: docker/setup-buildx-action@v3
 
-
-      - name: Get last commit message
-        id: get_commit
-        run: |
-          LAST_MSG=$(git log -1 --pretty=%B)
-          echo "msg=$LAST_MSG" >> $GITHUB_OUTPUT
-
-      - name: Install jq
-        run: sudo apt-get update && sudo apt-get install -y jq
-    
       - name: Pull and run Ollama container
-        run: |
-          docker run -d --name ollama -p 11434:11434 ollama/ollama
-        
+        run: docker run -d --name ollama -p 11434:11434 ollama/ollama
+
       - name: Wait for Ollama to be ready
         run: |
           for i in {1..10}; do
@@ -43,6 +35,12 @@ jobs:
             sleep 3
           done
 
+      - name: Get last commit message
+        id: get_commit
+        run: |
+          LAST_MSG=$(git log -1 --pretty=%B)
+          echo "msg=$LAST_MSG" >> $GITHUB_OUTPUT
+
       - name: Generate dramatic message with Ollama
         id: dramatic_commit
         run: |
@@ -50,32 +48,44 @@ jobs:
           RESPONSE=$(curl -s -X POST http://localhost:11434/api/generate \
           -H "Content-Type: application/json" \
           -d "{\"model\": \"llama3:instruct\", \"prompt\": \"$PROMPT\"}")
-    
+
           COMMIT_MSG=$(echo "$RESPONSE" | jq -r '.response // .completion // ""' | head -n 1)
 
           echo "Generated message: $COMMIT_MSG"
 
-          # Fallback if empty
           if [ -z "$COMMIT_MSG" ]; then
             COMMIT_MSG="Initial commit - rewritten dramatically!"
           fi
 
           echo "dramatic_msg=$COMMIT_MSG" >> $GITHUB_OUTPUT
 
-
-      - name: Set up Git authentication using PAT
+      - name: Set Git remote URL with PAT
         run: |
+          echo "Setting remote URL with PAT..."
           git remote set-url origin https://x-access-token:${{ secrets.GH_PAT }}@github.com/${{ github.repository }}
+          
+      - name: Show git remote URL (for debugging)
+        run: git remote -v
 
-      - name: Commit and push the dramatic commit message
+      - name: Show git status (before amend)
+        run: git status
+
+      - name: Amend commit with dramatic message
         run: |
-            git config user.name "Tyson Williams"
-            git config user.email "tyson.williams95@gmail.com"
-            git remote set-url origin https://x-access-token:${{ secrets.GH_PAT }}@github.com/${{ github.repository }}
-            
-            git status
-            git commit --amend -m "${{ steps.dramatic_commit.outputs.dramatic_msg }}"
-            git push --force origin main
+          git config user.name "Tyson Williams"
+          git config user.email "tyson.williams95@gmail.com"
+          
+          echo "Amending commit message..."
+          # Attempt amend, if no changes print message but don't fail
+          git commit --amend -m "${{ steps.dramatic_commit.outputs.dramatic_msg }}" || echo "No changes to amend"
 
+      - name: Show git status (after amend)
+        run: git status
 
+      - name: Show last commit message (for confirmation)
+        run: git log -1 --pretty=%B
 
+      - name: Push changes
+        run: |
+          echo "Pushing changes to origin main..."
+          git push --force origin main
