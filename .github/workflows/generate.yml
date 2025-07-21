@@ -63,10 +63,15 @@ jobs:
           echo "dramatic_msg=$COMMIT_MSG" >> $GITHUB_OUTPUT
 
 
-      - name: Amend commit with dramatic message
+      - name: Amend commit with dramatic message and force push
+        env:
+          GH_PAT: ${{ secrets.GH_PAT }}
         run: |
           git config user.name "github-actions"
           git config user.email "actions@github.com"
+          
           git commit --amend -m "${{ steps.dramatic_commit.outputs.dramatic_msg }}"
-          git push --force
+
+          git remote set-url origin https://x-access-token:${GH_PAT}@github.com/${{ github.repository }}
+          git push --force origin HEAD:main
 
